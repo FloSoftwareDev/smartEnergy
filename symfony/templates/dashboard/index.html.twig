@@ -1,0 +1,270 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Zonne-energie Dashboard{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #fafbfc; }
+        .dashboard-header {
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            padding: 1.5rem 0;
+        }
+        .dashboard-header .logo {
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: 0.5px;
+        }
+        .dashboard-header nav a {
+            color: #222;
+            margin-left: 2rem;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .dashboard-header nav a:hover {
+            text-decoration: underline;
+        }
+        .main-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .main-subtitle {
+            color: #888;
+            margin-bottom: 1.5rem;
+        }
+        .main-actions .btn {
+            margin-right: 1rem;
+            min-width: 160px;
+        }
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 2.5rem 0 1.2rem 0;
+            text-align: center;
+        }
+        .status-cards {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        .status-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            padding: 1.5rem 2rem;
+            min-width: 180px;
+            text-align: center;
+        }
+        .status-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #222;
+        }
+        .status-card .label {
+            color: #888;
+            font-size: 1rem;
+        }
+        .chart-section {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .env-cards {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .env-card {
+            background: #f5f6fa;
+            border-radius: 10px;
+            padding: 1.2rem 1.5rem;
+            min-width: 180px;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .hydrogen-cards {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+        .hydrogen-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            padding: 1.5rem 1.2rem;
+            min-width: 140px;
+            text-align: center;
+        }
+        .hydrogen-card i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .footer {
+            background: #fff;
+            border-top: 1px solid #eee;
+            padding: 1rem 0;
+            text-align: center;
+            color: #888;
+            font-size: 0.95rem;
+            margin-top: 2rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-header d-flex align-items-center justify-content-between px-4">
+    <div class="logo">Zonne-energie Dashboard</div>
+    <nav>
+        <a href="#">Home</a>
+        <a href="#">Data</a>
+        <a href="#">Instellingen</a>
+    </nav>
+</div>
+
+<div class="container py-4">
+    <div class="text-center mb-4">
+        <div class="main-title">Realtime Energie Overzicht</div>
+        <div class="main-subtitle">Overzicht van zonne-energieproductie en verbruik</div>
+        <div class="main-actions mb-3">
+            <button class="btn btn-dark">Verken Meer</button>
+            <button class="btn btn-outline-dark">Download Rapport</button>
+        </div>
+    </div>
+
+    <div class="section-title">Huidige Status</div>
+    <div class="status-cards">
+        <div class="status-card">
+            <div class="value">4.1</div>
+            <div class="label">Zonne-opwekking (kW)</div>
+        </div>
+        <div class="status-card">
+            <div class="value">0.0174</div>
+            <div class="label">Waterstofproductie (kg)</div>
+        </div>
+        <div class="status-card">
+            <div class="value">0.744</div>
+            <div class="label">Stroomverbruik (kW)</div>
+        </div>
+        <div class="status-card flex-grow-1" style="min-width:320px;">
+            <canvas id="statusLineChart" height="60"></canvas>
+            <div class="label mt-2">Waterstofproductie Door de Tijd</div>
+        </div>
+    </div>
+
+    <div class="section-title">Energieverbruik en Productie Tijdlijn</div>
+    <div class="chart-section">
+        <canvas id="energyBarChart" height="120"></canvas>
+        <div class="label mt-2 text-center">Stroomverbruik vs Zonnepaneelstroom</div>
+    </div>
+
+    <div class="section-title">Omgevingscondities</div>
+    <div class="env-cards mb-4">
+        <div class="env-card">
+            <div class="label">Buitentemperatuur</div>
+            <div class="value">18°C</div>
+        </div>
+        <div class="env-card">
+            <div class="label">Binnentemperatuur</div>
+            <div class="value">20.0°C</div>
+        </div>
+        <div class="env-card">
+            <div class="label">Luchtdruk</div>
+            <div class="value">1012 hPa</div>
+        </div>
+        <div class="env-card">
+            <div class="label">Luchtvochtigheid</div>
+            <div class="value">71%</div>
+        </div>
+    </div>
+
+    <div class="section-title">Waterstofverbruik & Opslag</div>
+    <div class="hydrogen-cards">
+        <div class="hydrogen-card">
+            <i class="fas fa-car text-danger"></i>
+            <div class="label">Waterstofverbruik Auto</div>
+            <div class="value">0 L/u</div>
+        </div>
+        <div class="hydrogen-card">
+            <i class="fas fa-tools text-secondary"></i>
+            <div class="label">Waterstofopslag Woning</div>
+            <div class="value">0%</div>
+        </div>
+        <div class="hydrogen-card">
+            <i class="fas fa-battery-full text-success"></i>
+            <div class="label">Accuniveau</div>
+            <div class="value">99.93%</div>
+        </div>
+        <div class="hydrogen-card">
+            <i class="fas fa-globe text-info"></i>
+            <div class="label">CO₂-concentratie Binnen</div>
+            <div class="value">495 ppm</div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <span>Privacybeleid</span> &nbsp;|&nbsp;
+    <span>Algemene Voorwaarden</span> &nbsp;|&nbsp;
+    <span>Contact</span>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Placeholder charts
+        if (document.getElementById('statusLineChart')) {
+            new Chart(document.getElementById('statusLineChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    datasets: [{
+                        label: 'Waterstofproductie',
+                        data: [0.01, 0.015, 0.017, 0.016, 0.018, 0.0174],
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78,115,223,0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false }, y: { beginAtZero: true } },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        if (document.getElementById('energyBarChart')) {
+            new Chart(document.getElementById('energyBarChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'],
+                    datasets: [{
+                        label: 'Stroomverbruik',
+                        data: [4.2, 3.8, 4.0, 3.5, 4.1, 3.7, 3.9],
+                        backgroundColor: '#6fd37c',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+    </script>
+{% endblock %} 
