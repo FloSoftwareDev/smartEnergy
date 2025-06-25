@@ -8,16 +8,19 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
+use App\Service\ExcelDataService;
 
 class DashboardController extends AbstractController
 {
     private EnergyService $energyService;
     private ErrorHandlingService $errorHandler;
+    private ExcelDataService $excelDataService;
 
-    public function __construct(EnergyService $energyService, ErrorHandlingService $errorHandler)
+    public function __construct(EnergyService $energyService, ErrorHandlingService $errorHandler, ExcelDataService $excelDataService)
     {
         $this->energyService = $energyService;
         $this->errorHandler = $errorHandler;
+        $this->excelDataService = $excelDataService;
     }
 
     #[Route('/', name: 'dashboard')]
@@ -25,9 +28,12 @@ class DashboardController extends AbstractController
     {
         try {
             $dashboardData = $this->energyService->getDashboardData();
-            
+            // Path to your Excel file (adjust as needed)
+            $excelFilePath = $this->getParameter('kernel.project_dir') . '/public/uploads/simulatie_data.csv';
+            $excelData = $this->excelDataService->getEnergyData($excelFilePath);
             return $this->render('dashboard/index.html.twig', [
-                'dashboardData' => $dashboardData
+                'dashboardData' => $dashboardData,
+                'excelData' => $excelData
             ]);
         } catch (\Throwable $e) {
             return $this->errorHandler->handleException($e);

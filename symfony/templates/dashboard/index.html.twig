@@ -209,6 +209,54 @@
             <div class="value">495 ppm</div>
         </div>
     </div>
+
+    <div class="section-title">Simulatie Data Energietransitie</div>
+    <div class="table-responsive mb-5">
+        <table class="table table-bordered table-striped table-sm align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Tijdstip</th>
+                    <th>Zonnepaneelspanning (V)</th>
+                    <th>Zonnepaneelstroom (A)</th>
+                    <th>Waterstofproductie (L/u)</th>
+                    <th>Stroomverbruik woning (kW)</th>
+                    <th>Waterstofverbruik auto (L/u)</th>
+                    <th>Buitentemperatuur (°C)</th>
+                    <th>Binnentemperatuur (°C)</th>
+                    <th>Luchtdruk (hPa)</th>
+                    <th>Luchtvochtigheid (%)</th>
+                    <th>Accuniveau (%)</th>
+                    <th>CO2-concentratie binnen (ppm)</th>
+                    <th>Waterstofopslag woning (%)</th>
+                    <th>Waterstofopslag auto (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in excelData|slice(0,20) %}
+                    {% if row.timestamp is defined %}
+                        <tr>
+                            <td>{{ row.timestamp }}</td>
+                            <td>{{ row.solar_panel_voltage }}</td>
+                            <td>{{ row.solar_panel_current }}</td>
+                            <td>{{ row.hydrogen_production }}</td>
+                            <td>{{ row.house_power_consumption }}</td>
+                            <td>{{ row.car_hydrogen_consumption }}</td>
+                            <td>{{ row.outside_temperature }}</td>
+                            <td>{{ row.inside_temperature }}</td>
+                            <td>{{ row.air_pressure }}</td>
+                            <td>{{ row.humidity }}</td>
+                            <td>{{ row.battery_level }}</td>
+                            <td>{{ row.co2_concentration_inside }}</td>
+                            <td>{{ row.house_hydrogen_storage }}</td>
+                            <td>{{ row.car_hydrogen_storage }}</td>
+                        </tr>
+                    {% endif %}
+                {% else %}
+                    <tr><td colspan="14" class="text-center">Geen data gevonden</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div class="footer">
