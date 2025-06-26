@@ -23,8 +23,8 @@ class ExcelDataService
             'Waterstofproductie (L/u)' => 'hydrogen_production',
             'Stroomverbruik woning (kW)' => 'house_power_consumption',
             'Waterstofverbruik auto (L/u)' => 'car_hydrogen_consumption',
-            'Buitentemperatuur (°C)' => 'outside_temperature',
-            'Binnentemperatuur (°C)' => 'inside_temperature',
+            'Buitentemperatuur (C)' => 'outside_temperature',
+            'Binnentemperatuur (C)' => 'inside_temperature',
             'Luchtdruk (hPa)' => 'air_pressure',
             'Luchtvochtigheid (%)' => 'humidity',
             'Accuniveau (%)' => 'battery_level',
@@ -35,7 +35,7 @@ class ExcelDataService
 
         $data = [];
         if (($handle = fopen($filePath, 'r')) !== false) {
-            $headerRow = fgetcsv($handle, 0, ",");
+            $headerRow = fgetcsv($handle, 0, ";");
             if ($headerRow === false) {
                 fclose($handle);
                 return $data;
@@ -43,9 +43,12 @@ class ExcelDataService
             // Remove BOM if present
             $headerRow[0] = preg_replace('/^\xEF\xBB\xBF/', '', $headerRow[0]);
 
-            while (($row = fgetcsv($handle, 0, ",")) !== false) {
+            while (($row = fgetcsv($handle, 0, ";")) !== false) {
                 $mappedRow = [];
                 foreach ($headerRow as $colIdx => $header) {
+                    if ($header === '') {
+                        continue; // skip empty columns
+                    }
                     if (isset($headerMap[$header])) {
                         $mappedRow[$headerMap[$header]] = $row[$colIdx] ?? null;
                     }

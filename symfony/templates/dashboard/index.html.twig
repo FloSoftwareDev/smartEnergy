@@ -69,12 +69,32 @@
             color: #888;
             font-size: 1rem;
         }
+        .status-card .label.small {
+            font-size: 0.8rem;
+            color: #888;
+        }
         .chart-section {
             background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            padding: 2rem;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1.5px 4px rgba(0,0,0,0.04);
+            padding: 2.5rem 2rem 2rem 2rem;
             margin-bottom: 2rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            overflow-x: auto;
+            transition: box-shadow 0.2s;
+        }
+        #energyBarChart, #statusLineChart {
+            width: 1200px !important;
+            height: 120px !important;
+            min-width: 700px !important;
+            max-width: none !important;
+            max-height: 200px !important;
+            display: block;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(78,115,223,0.08);
+            background: #f8fafc;
         }
         .env-cards {
             display: flex;
@@ -117,10 +137,15 @@
             font-size: 0.95rem;
             margin-top: 2rem;
         }
+        .status-card .chart-scroll-x {
+            overflow-x: auto;
+            width: 100%;
+        }
     </style>
 {% endblock %}
 
 {% block body %}
+{% set current = (excelData|reverse|filter(r => r.timestamp is not empty)|first) %}
 <div class="dashboard-header d-flex align-items-center justify-content-between px-4">
     <div class="logo">Zonne-energie Dashboard</div>
     <nav>
@@ -141,21 +166,28 @@
     </div>
 
     <div class="section-title">Huidige Status</div>
+    {% set last24 = excelData|slice(-24, 24) %}
+    {% set avg_solar = last24|map(r => (r.solar_panel_current is defined ? r.solar_panel_current|replace({',':'.'})|default('0')|trim * 1 : 0))|reduce((a, b) => a + b, 0) / (last24|length > 0 ? last24|length : 1) %}
+    {% set avg_consumption = last24|map(r => (r.house_power_consumption is defined ? r.house_power_consumption|replace({',':'.'})|default('0')|trim * 1 : 0))|reduce((a, b) => a + b, 0) / (last24|length > 0 ? last24|length : 1) %}
     <div class="status-cards">
         <div class="status-card">
-            <div class="value">4.1</div>
+            <div class="value">{{ current.solar_panel_current is defined ? current.solar_panel_current|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }}</div>
             <div class="label">Zonne-opwekking (kW)</div>
+            <div class="label small">Gemiddeld 24u: {{ avg_solar|number_format(2, '.', '') }}</div>
         </div>
         <div class="status-card">
-            <div class="value">0.0174</div>
+            <div class="value">{{ current.hydrogen_production is defined ? current.hydrogen_production|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }}</div>
             <div class="label">Waterstofproductie (kg)</div>
         </div>
         <div class="status-card">
-            <div class="value">0.744</div>
+            <div class="value">{{ current.house_power_consumption is defined ? current.house_power_consumption|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }}</div>
             <div class="label">Stroomverbruik (kW)</div>
+            <div class="label small">Gemiddeld 24u: {{ avg_consumption|number_format(2, '.', '') }}</div>
         </div>
         <div class="status-card flex-grow-1" style="min-width:320px;">
-            <canvas id="statusLineChart" height="60"></canvas>
+            <div class="chart-scroll-x">
+                <canvas id="statusLineChart" height="60"></canvas>
+            </div>
             <div class="label mt-2">Waterstofproductie Door de Tijd</div>
         </div>
     </div>
@@ -169,20 +201,20 @@
     <div class="section-title">Omgevingscondities</div>
     <div class="env-cards mb-4">
         <div class="env-card">
-            <div class="label">Buitentemperatuur</div>
-            <div class="value">18°C</div>
-        </div>
-        <div class="env-card">
-            <div class="label">Binnentemperatuur</div>
-            <div class="value">20.0°C</div>
-        </div>
-        <div class="env-card">
             <div class="label">Luchtdruk</div>
-            <div class="value">1012 hPa</div>
+            <div class="value">{{ current.air_pressure is defined ? current.air_pressure|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }} hPa</div>
         </div>
         <div class="env-card">
             <div class="label">Luchtvochtigheid</div>
-            <div class="value">71%</div>
+            <div class="value">{{ current.humidity is defined ? current.humidity|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }}%</div>
+        </div>
+        <div class="env-card">
+            <div class="label">Accuniveau</div>
+            <div class="value">{{ current.battery_level is defined ? current.battery_level|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }}%</div>
+        </div>
+        <div class="env-card">
+            <div class="label">CO₂-concentratie Binnen</div>
+            <div class="value">{{ current.co2_concentration_inside is defined ? current.co2_concentration_inside|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }} ppm</div>
         </div>
     </div>
 
@@ -191,72 +223,25 @@
         <div class="hydrogen-card">
             <i class="fas fa-car text-danger"></i>
             <div class="label">Waterstofverbruik Auto</div>
-            <div class="value">0 L/u</div>
+            <div class="value">{{ current.car_hydrogen_consumption is defined ? current.car_hydrogen_consumption|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }} L/u</div>
         </div>
         <div class="hydrogen-card">
             <i class="fas fa-tools text-secondary"></i>
             <div class="label">Waterstofopslag Woning</div>
-            <div class="value">0%</div>
+            <div class="value">{{ current.house_hydrogen_storage is defined ? current.house_hydrogen_storage|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }}%</div>
         </div>
         <div class="hydrogen-card">
             <i class="fas fa-battery-full text-success"></i>
             <div class="label">Accuniveau</div>
-            <div class="value">99.93%</div>
+            <div class="value">{{ current.battery_level is defined ? current.battery_level|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }}%</div>
         </div>
         <div class="hydrogen-card">
             <i class="fas fa-globe text-info"></i>
             <div class="label">CO₂-concentratie Binnen</div>
-            <div class="value">495 ppm</div>
+            <div class="value">{{ current.co2_concentration_inside is defined ? current.co2_concentration_inside|replace({',':'.'})|number_format(2, '.', '') : 'n/a' }} ppm</div>
         </div>
     </div>
 
-    <div class="section-title">Simulatie Data Energietransitie</div>
-    <div class="table-responsive mb-5">
-        <table class="table table-bordered table-striped table-sm align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Tijdstip</th>
-                    <th>Zonnepaneelspanning (V)</th>
-                    <th>Zonnepaneelstroom (A)</th>
-                    <th>Waterstofproductie (L/u)</th>
-                    <th>Stroomverbruik woning (kW)</th>
-                    <th>Waterstofverbruik auto (L/u)</th>
-                    <th>Buitentemperatuur (°C)</th>
-                    <th>Binnentemperatuur (°C)</th>
-                    <th>Luchtdruk (hPa)</th>
-                    <th>Luchtvochtigheid (%)</th>
-                    <th>Accuniveau (%)</th>
-                    <th>CO2-concentratie binnen (ppm)</th>
-                    <th>Waterstofopslag woning (%)</th>
-                    <th>Waterstofopslag auto (%)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in excelData|slice(0,20) %}
-                    {% if row.timestamp is defined %}
-                        <tr>
-                            <td>{{ row.timestamp }}</td>
-                            <td>{{ row.solar_panel_voltage }}</td>
-                            <td>{{ row.solar_panel_current }}</td>
-                            <td>{{ row.hydrogen_production }}</td>
-                            <td>{{ row.house_power_consumption }}</td>
-                            <td>{{ row.car_hydrogen_consumption }}</td>
-                            <td>{{ row.outside_temperature }}</td>
-                            <td>{{ row.inside_temperature }}</td>
-                            <td>{{ row.air_pressure }}</td>
-                            <td>{{ row.humidity }}</td>
-                            <td>{{ row.battery_level }}</td>
-                            <td>{{ row.co2_concentration_inside }}</td>
-                            <td>{{ row.house_hydrogen_storage }}</td>
-                            <td>{{ row.car_hydrogen_storage }}</td>
-                        </tr>
-                    {% endif %}
-                {% else %}
-                    <tr><td colspan="14" class="text-center">Geen data gevonden</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 </div>
 
 <div class="footer">
@@ -269,50 +254,211 @@
 {% block javascripts %}
     {{ parent() }}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
-        // Placeholder charts
-        if (document.getElementById('statusLineChart')) {
-            new Chart(document.getElementById('statusLineChart').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-                    datasets: [{
-                        label: 'Waterstofproductie',
-                        data: [0.01, 0.015, 0.017, 0.016, 0.018, 0.0174],
-                        borderColor: '#4e73df',
-                        backgroundColor: 'rgba(78,115,223,0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    plugins: { legend: { display: false } },
-                    scales: { x: { display: false }, y: { beginAtZero: true } },
-                    responsive: true,
-                    maintainAspectRatio: false
+        console.log('Chart after load:', typeof Chart);
+    </script>
+    <script>
+        // Passes the excelData from Twig/PHP to JavaScript as a global variable
+        window.excelData = {{ excelData|json_encode|raw }};
+
+        // Wait for the DOM to be fully loaded before running chart initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Prevents re-initialization if already done (e.g., on hot reload)
+            if (window.energyBarChartInitialized) return;
+            window.energyBarChartInitialized = true;
+
+            // --- ENERGY BAR CHART ---
+            // Select the chart container for the energy bar chart
+            const container = document.querySelector('.chart-section');
+            if (container) {
+                // Remove any existing canvas with the same ID to avoid duplicates
+                document.querySelectorAll('#energyBarChart').forEach(c => c.remove());
+                // Create a new canvas element for the bar chart
+                const newCanvas = document.createElement('canvas');
+                newCanvas.id = 'energyBarChart';
+                newCanvas.height = 120;
+                newCanvas.width = 1200;
+                newCanvas.style.width = '100%';
+                newCanvas.style.maxWidth = '700px';
+                newCanvas.style.height = '120px';
+                newCanvas.style.borderRadius = '14px';
+                newCanvas.style.boxShadow = '0 2px 12px rgba(78,115,223,0.08)';
+                newCanvas.style.background = '#f8fafc';
+                // Insert the new canvas at the top of the container
+                container.prepend(newCanvas);
+
+                // Get the 2D drawing context for Chart.js
+                const ctx = newCanvas.getContext('2d');
+                // Create vertical gradients for each dataset (bar color)
+                const stroomverbruikGradient = ctx.createLinearGradient(0, 0, 0, 120);
+                stroomverbruikGradient.addColorStop(0, '#6fd37c');
+                stroomverbruikGradient.addColorStop(1, '#b2f7c1');
+                const zonnepaneelGradient = ctx.createLinearGradient(0, 0, 0, 120);
+                zonnepaneelGradient.addColorStop(0, '#4e73df');
+                zonnepaneelGradient.addColorStop(1, '#a3bffa');
+
+                // Prepare the last 24 records with a timestamp for the chart
+                const data = window.excelData.filter(r => r.timestamp).slice(-24);
+                // Extract time labels (HH:MM:SS) from the timestamp
+                const labels = data.map(r => (r.timestamp.split(' ')[1] || r.timestamp));
+                // Extract house power consumption and solar panel current as float arrays
+                const stroomverbruik = data.map(r => parseFloat((r.house_power_consumption || '0').replace(',', '.')));
+                const zonnepaneel = data.map(r => parseFloat((r.solar_panel_current || '0').replace(',', '.')));
+
+                // Initialize the Chart.js bar chart instance
+                window.energyBarChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Stroomverbruik (kW)', // House power consumption
+                                data: stroomverbruik,
+                                backgroundColor: stroomverbruikGradient,
+                                borderRadius: 10,
+                                borderSkipped: false,
+                                hoverBackgroundColor: '#4e73df',
+                                barPercentage: 0.7,
+                                categoryPercentage: 0.6
+                            },
+                            {
+                                label: 'Zonnepaneelstroom (A)', // Solar panel current
+                                data: zonnepaneel,
+                                backgroundColor: zonnepaneelGradient,
+                                borderRadius: 10,
+                                borderSkipped: false,
+                                hoverBackgroundColor: '#6fd37c',
+                                barPercentage: 0.7,
+                                categoryPercentage: 0.6
+                            }
+                        ]
+                    },
+                    options: {
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: {
+                                    color: '#222',
+                                    font: { size: 14, weight: 'bold' }
+                                }
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: '#fff',
+                                titleColor: '#4e73df',
+                                bodyColor: '#222',
+                                borderColor: '#4e73df',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false // Hide vertical grid lines
+                                },
+                                ticks: {
+                                    color: '#888',
+                                    font: { size: 12 }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(78,115,223,0.08)', // Subtle horizontal grid lines
+                                    borderDash: [4, 4]
+                                },
+                                ticks: {
+                                    color: '#888',
+                                    font: { size: 12 }
+                                }
+                            }
+                        },
+                        responsive: false,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            // --- STATUS LINE CHART (Hydrogen Production Over Time) ---
+            // Get the canvas for the status line chart
+            const statusLineChartContainer = document.getElementById('statusLineChart');
+            if (statusLineChartContainer) {
+                // Set explicit width and height for consistent rendering
+                statusLineChartContainer.width = 1200;
+                statusLineChartContainer.height = 80;
+                // Get the 2D context for Chart.js
+                const ctx2 = statusLineChartContainer.getContext('2d');
+                // Create a vertical gradient for the line fill
+                const lineGradient = ctx2.createLinearGradient(0, 0, 0, 80);
+                lineGradient.addColorStop(0, 'rgba(78,115,223,0.25)');
+                lineGradient.addColorStop(1, 'rgba(78,115,223,0.02)');
+                // Prepare the last 24 records for the line chart
+                const data = window.excelData.filter(r => r.timestamp).slice(-24);
+                // Extract time labels (HH:MM:SS) from the timestamp
+                const labels = data.map(r => r.timestamp ? r.timestamp.split(' ')[1] : '');
+                // Extract hydrogen production values as floats
+                const waterstof = data.map(r => parseFloat((r.hydrogen_production || '0').replace(',', '.')));
+                // Destroy any previous chart instance to avoid memory leaks
+                if (window.statusLineChartInstance) {
+                    window.statusLineChartInstance.destroy();
                 }
-            });
-        }
-        if (document.getElementById('energyBarChart')) {
-            new Chart(document.getElementById('energyBarChart').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'],
-                    datasets: [{
-                        label: 'Stroomverbruik',
-                        data: [4.2, 3.8, 4.0, 3.5, 4.1, 3.7, 3.9],
-                        backgroundColor: '#6fd37c',
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } },
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-        }
+                // Initialize the Chart.js line chart instance
+                window.statusLineChartInstance = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Waterstofproductie', // Hydrogen production
+                            data: waterstof,
+                            borderColor: '#4e73df',
+                            backgroundColor: lineGradient,
+                            fill: true,
+                            tension: 0.45, // Smooth the line
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#4e73df',
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: '#fff',
+                                titleColor: '#4e73df',
+                                bodyColor: '#222',
+                                borderColor: '#4e73df',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: false // Hide x-axis for a cleaner look
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(78,115,223,0.08)', // Subtle horizontal grid lines
+                                    borderDash: [4, 4]
+                                },
+                                ticks: {
+                                    color: '#888',
+                                    font: { size: 12 }
+                                }
+                            }
+                        },
+                        responsive: false,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+        });
     </script>
 {% endblock %} 
